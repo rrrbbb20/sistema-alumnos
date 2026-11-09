@@ -76,7 +76,42 @@ pipeline {
             }
         }
         // >>> [B-VERSION] (Parte B, paso B4): aquí va la etapa "Version Control"
+                stage('Version Control') {
+            // Solo se versiona la documentación de builds 100% correctos y NO en las ejecuciones programadas
+            when {
+                allOf {
+                    expression { currentBuild.currentResult == 'SUCCESS' }
+                    not { triggeredBy 'TimerTrigger' }
+                }
+            }
+            steps {
+                sh 'bash scripts/trazabilidad.sh'
+                withCredentials([usernamePassword(credentialsId: 'github-token',
+                                                  usernameVariable: 'GIT_USER',
+                                                  passwordVariable: 'GIT_TOKEN')]) {
+                    sh '''#!/bin/bash
+                        set -eu
+                        git config user.name  "Jenkins CI"
+                        git config user.email "jenkins@localhost"
+                        git add docs
+                        if git diff --cached --quiet; then
+                            echo "No hay cambios en docs/: nada que versionar"
+                            exit 0
+                        fi
+                        # [skip ci] evita que este commit dispare otro build si algún día se activa un webhook
+                        git commit -q -m "docs: documentación del build #${BUILD_NUMBER} (${APP_VERSION}) [skip ci]"
+                        git tag -a "build-${BUILD_NUMBER}-${GIT_SHA}" -m "Build ${BUILD_NUMBER} - versión ${APP_VERSION}"
 
+                        # Credenciales vía GIT_ASKPASS: el token no queda en la URL, ni en .git/config, ni en el log
+                        ASKPASS="$(mktemp)"
+                        trap 'rm -f "$ASKPASS"' EXIT
+                        printf '#!/bin/sh\ncase "$1" in Username*) echo "$GIT_USER" ;; *) echo "$GIT_TOKEN" ;; esac\n' > "$ASKPASS"
+                        chmod 700 "$ASKPASS"
+                        GIT_ASKPASS="$ASKPASS" GIT_TERMINAL_PROMPT=0 git push origin HEAD:main --follow-tags
+                    '''
+                }
+            }
+        }
         // >>> [B-DEPLOY] (Parte B, paso B5): aquí va la etapa "Deploy"
     }
 
