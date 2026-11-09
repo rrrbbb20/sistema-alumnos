@@ -52,7 +52,29 @@ pipeline {
         // >>> [A-ETAPAS] (Parte A, paso A1): aquí van las etapas "Analyze" y "Dependency Management"
 
         // >>> [B-DOCS] (Parte B, paso B3): aquí va la etapa "Generate Documentation"
-
+        stage('Generate Documentation') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                    sh '''#!/bin/bash
+                        set -eu
+                        mkdir -p reports
+                        rm -rf docs/html reports/doxygen_warnings.log
+                        doxygen Doxyfile
+                        if [ -s reports/doxygen_warnings.log ]; then
+                            echo "Doxygen encontró código sin documentar o mal documentado:"
+                            cat reports/doxygen_warnings.log
+                            exit 1
+                        fi
+                        echo "Documentación generada sin advertencias en docs/html"
+                    '''
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'docs/html/**', allowEmptyArchive: true
+                }
+            }
+        }
         // >>> [B-VERSION] (Parte B, paso B4): aquí va la etapa "Version Control"
 
         // >>> [B-DEPLOY] (Parte B, paso B5): aquí va la etapa "Deploy"

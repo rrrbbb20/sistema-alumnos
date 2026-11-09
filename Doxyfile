@@ -5,3 +5,14 @@ RECURSIVE              = YES
 GENERATE_LATEX         = NO
 
 # TODO (Parte B): completa la configuración siguiendo la guía paso a paso.
+PROJECT_NUMBER         = $(APP_VERSION)
+PROJECT_BRIEF          = "API de gestión de alumnos - OCY1102"
+
+INPUT                  = app.py
+FILE_PATTERNS          = *.py
+OPTIMIZE_OUTPUT_JAVA   = YES
+
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_NO_PARAMDOC       = YES
+WARN_LOGFILE           = reports/doxygen_warnings.log
