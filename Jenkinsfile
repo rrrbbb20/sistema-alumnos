@@ -113,6 +113,12 @@ pipeline {
             }
         }
         // >>> [B-DEPLOY] (Parte B, paso B5): aquí va la etapa "Deploy"
+        stage('Deploy') {
+         when { expression { currentBuild.currentResult == 'SUCCESS' } }
+         steps {
+             sh 'bash scripts/deploy_test.sh'
+         }
+     }
     }
 
     post {
